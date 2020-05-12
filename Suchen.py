@@ -147,16 +147,50 @@ class Zeitfeld:
 
 
 def Suchen():
+    
+    #Zeiten abfragen
+
     datum_von=Datum_von.Datum_pruefen()
     datum_bis=Datum_bis.Datum_pruefen()
-    
     uhrzeit_von=Uhrzeit_von.Uhrzeit_pruefen()
     uhrzeit_bis=Uhrzeit_bis.Uhrzeit_pruefen()
 
-    print(datum_von)
-    print(datum_bis)
-    print(uhrzeit_von)
-    print(uhrzeit_bis)
+    try:
+        if uhrzeit_von!="leer":
+            datum_von=datum_von.replace(hour=uhrzeit_von.hour)
+            datum_von=datum_von.replace(minute=uhrzeit_von.minute)
+            zeit_von=datum_von
+        else:
+            zeit_von=datum_von
+    except:
+        zeit_von=datetime.now().replace(hour=uhrzeit_von.hour)
+        zeit_von=zeit_von.replace(minute=uhrzeit_von.minute)
+        tkm.showinfo("Zeit von","Zeit von auf aktuelles Datum gesetzt")
+
+
+    try:
+        if uhrzeit_bis!="leer":
+            datum_bis=datum_bis.replace(hour=uhrzeit_bis.hour)
+            datum_bis=datum_bis.replace(minute=uhrzeit_bis.minute)
+            zeit_bis=datum_bis
+        else:
+            zeit_bis=datum_bis
+    
+    except:
+        zeit_bis=datetime.now().replace(hour=uhrzeit_bis.hour)
+        zeit_bis=zeit_bis.replace(minute=uhrzeit_bis.minute)
+        tkm.showinfo("Zeit bis","Zeit bis auf aktuelles Datum gesetzt")
+    
+
+
+
+    #print(datum_von)
+    #print(datum_bis)
+    #print(uhrzeit_von)
+    #print(uhrzeit_bis)
+
+    print(zeit_bis)
+    print(zeit_von)
 
 ### Objekte ###
 
@@ -202,10 +236,25 @@ tk.Label(Hauptfenster, text="Dateityp",fg="black",font="Arial 10",bg="cornsilk2"
 
 #Checkbox Sterne
 Sterneeingabe=tk.Checkbutton(Hauptfenster, width=30, height=30)
-Sterneeingabe.place(x=300, y=y_Eingabebegriff-50, width=20, height=20)
-tk.Label(Hauptfenster, text="Begriff an jeder Stelle des Dateinamens",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=320, y=y_Eingabebegriff-50, width=250, height=20)
+Sterneeingabe.place(x=300, y=y_Eingabebegriff-65, width=20, height=20)
+tk.Label(Hauptfenster, text="Begriff an jeder Stelle des Dateinamens",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=320, y=y_Eingabebegriff-65, width=250, height=20)
 
 Sterneeingabe.select() #Checkbutton anwählen
+
+
+#Checkbox Ordner
+Ordner_Checkbox=tk.Checkbutton(Hauptfenster, width=30, height=30)
+Ordner_Checkbox.place(x=300, y=y_Eingabebegriff-45, width=20, height=20)
+tk.Label(Hauptfenster, text="Ordner suchen",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=320, y=y_Eingabebegriff-45, width=250, height=20)
+
+Ordner_Checkbox.select() #Checkbutton anwählen
+
+#Checkbox Dateien
+Ordner_Dateien=tk.Checkbutton(Hauptfenster, width=30, height=30)
+Ordner_Dateien.place(x=300, y=y_Eingabebegriff-25, width=20, height=20)
+tk.Label(Hauptfenster, text="Dateien suchen",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=320, y=y_Eingabebegriff-25, width=250, height=20)
+
+Ordner_Dateien.select() #Checkbutton anwählen
 
 #Zeiten
 
