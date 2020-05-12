@@ -34,12 +34,13 @@ class Zeitfeld:
     def __init__(self,von_oder_bis,Zeiteinheit):
         self.von_oder_bis=von_oder_bis
         self.Zeiteinheit=Zeiteinheit
+        
+            
 
-    
-def Datum_pruefen(tag,monat,jahr,stunde,minute,von_oder_bis):
-    try:
-        if tag!="" or monat!="" or jahr!="":
-            datum=datetime.strptime(tag+" "+monat+" "+jahr,"%d %m %Y")
+    def Farbe_weiß(self):
+        Zeiteinheit=self.Zeiteinheit
+        von_oder_bis=self.von_oder_bis
+        if Zeiteinheit=="Datum":
             if von_oder_bis=="von":
                 Tag_von.config(bg="white")
                 Monat_von.config(bg="white")
@@ -47,42 +48,115 @@ def Datum_pruefen(tag,monat,jahr,stunde,minute,von_oder_bis):
                 
             elif von_oder_bis=="bis":
                 Tag_bis.config(bg="white")
-                Monat_von.config(bg="white")
+                Monat_bis.config(bg="white")
                 Jahr_bis.config(bg="white")
-        elif tag=="" or monat=="" or jahr=="":
-            datum="leer"
+        
+        if Zeiteinheit=="Uhrzeit":
             if von_oder_bis=="von":
-                Tag_von.config(bg="white")
-                Monat_von.config(bg="white")
-                Jahr_von.config(bg="white")
-                datum="leer"
+                Stunde_von.config(bg="white")
+                Minute_von.config(bg="white")
+                
+                
             elif von_oder_bis=="bis":
-                Tag_bis.config(bg="white")
-                Monat_von.config(bg="white")
-                Jahr_bis.config(bg="white")
-        else:
-            tkm.showinfo("Datumseingabe","Bitte vollständiges Datum bei "+"'"+von_oder_bis +"'" "eintragen")
-            datum="leer"
-    except:
-        tkm.showwarning("Eingabefehler","Datumseingabe fehlerhaft: \n Format: TT MM JJJJ \n Prüfen ob Datum existiert")
-        if von_oder_bis=="von":
-            Tag_von.config(bg="red")
-            Monat_von.config(bg="red")
-            Jahr_von.config(bg="red")
-            datum="leer"
-        elif von_oder_bis=="bis":
-            Tag_bis.config(bg="red")
-            Monat_von.config(bg="red")
-            Jahr_bis.config(bg="red")
+                Stunde_bis.config(bg="white")
+                Minute_bis.config(bg="white")
+
+    def Farbe_rot(self):
+        Zeiteinheit=self.Zeiteinheit
+        von_oder_bis=self.von_oder_bis
+        if Zeiteinheit=="Datum":
+            if von_oder_bis=="von":
+                Tag_von.config(bg="red")
+                Monat_von.config(bg="red")
+                Jahr_von.config(bg="red")
+                
+            elif von_oder_bis=="bis":
+                Tag_bis.config(bg="red")
+                Monat_bis.config(bg="red")
+                Jahr_bis.config(bg="red")
+        
+        if Zeiteinheit=="Uhrzeit":
+            if von_oder_bis=="von":
+                Stunde_von.config(bg="red")
+                Minute_von.config(bg="red")
+                
+                
+            elif von_oder_bis=="bis":
+                Stunde_bis.config(bg="red")
+                Minute_bis.config(bg="red")
+    
+    def Uhrzeit_pruefen(self):
+        Zeiteinheit=self.Zeiteinheit
+        von_oder_bis=self.von_oder_bis
+
+        if Zeiteinheit=="Uhrzeit" and von_oder_bis=="von":
+            self.stunde=Stunde_von.get()
+            self.minute=Minute_von.get()
+        elif Zeiteinheit=="Uhrzeit" and von_oder_bis=="bis":
+            self.stunde=Stunde_bis.get()
+            self.minute=Minute_bis.get()
+
+        try:
+            if self.stunde!="" or self.minute!="" :
+                uhrzeit=datetime.strptime(self.stunde+" "+self.minute,"%H %M")
+                self.Farbe_weiß()
+            elif self.stunde=="" or self.minute=="":
+                uhrzeit="leer"
+                self.Farbe_weiß()
+            else:
+                tkm.showinfo("Uhrzeiteingabe","Bitte vollständige Uhrzeit bei "+"'"+von_oder_bis +"'" "eintragen")
+                uhrzeit="leer"
+        except:
+            tkm.showwarning("Eingabefehler","Uhrzeiteingabe fehlerhaft: \n Format: HH MM  \n Prüfen ob Uhrzeit existiert")
+            self.Farbe_rot()
+            uhrzeit="leer"
+    
+        return uhrzeit
+    
+    def Datum_pruefen(self):
+        
+        Zeiteinheit=self.Zeiteinheit
+        von_oder_bis=self.von_oder_bis
+        
+        if Zeiteinheit=="Datum" and von_oder_bis=="von":
+            self.tag=Tag_von.get()
+            self.monat=Monat_von.get()
+            self.jahr=Jahr_von.get()
+        elif Zeiteinheit=="Datum" and von_oder_bis=="bis":
+            self.tag=Tag_bis.get()
+            self.monat=Monat_bis.get()
+            self.jahr=Jahr_bis.get()
+        
+        try:
+            if self.tag!="" or self.monat!="" or self.jahr!="":
+                datum=datetime.strptime(self.tag+" "+self.monat+" "+self.jahr,"%d %m %Y")
+                self.Farbe_weiß()
+            elif self.tag=="" or self.monat=="" or self.jahr=="":
+                datum="leer"
+                self.Farbe_weiß()
+            else:
+                tkm.showinfo("Datumseingabe","Bitte vollständiges Datum bei "+"'"+von_oder_bis +"'" "eintragen")
+                datum="leer"
+        except:
+            tkm.showwarning("Eingabefehler","Datumseingabe fehlerhaft: \n Format: TT MM JJJJ \n Prüfen ob Datum existiert")
+            self.Farbe_rot()
             datum="leer"
     
-    return datum
+        return datum
 
 
 
 def Suchen():
-    datum=Datum_pruefen(Tag_von.get(),Monat_von.get(),Jahr_von.get(),Stunde_von.get(),Minute_von.get(),"von")
-    print(datum)
+    datum_von=Datum_von.Datum_pruefen()
+    datum_bis=Datum_bis.Datum_pruefen()
+    
+    uhrzeit_von=Uhrzeit_von.Uhrzeit_pruefen()
+    uhrzeit_bis=Uhrzeit_bis.Uhrzeit_pruefen()
+
+    print(datum_von)
+    print(datum_bis)
+    print(uhrzeit_von)
+    print(uhrzeit_bis)
 
 ### Objekte ###
 
@@ -182,6 +256,14 @@ Stunde_bis.place(x=390, y=y_Zeit_bis, width=50, height=30)
 tk.Label(Hauptfenster, text="Stunde",fg="black",font="Arial 10",bg="cornsilk2",justify="center").place(x=390, y=y_Zeit_von+30, width=50, height=16)
 Minute_bis.place(x=440, y=y_Zeit_bis, width=50, height=30)
 tk.Label(Hauptfenster, text="Minute",fg="black",font="Arial 10",bg="cornsilk2",justify="center").place(x=440, y=y_Zeit_von+30, width=50, height=16)
+
+#Zeitfeldklassen:
+
+Datum_von=Zeitfeld("von","Datum")
+Datum_bis=Zeitfeld("bis","Datum")
+Uhrzeit_von=Zeitfeld("von","Uhrzeit")
+Uhrzeit_bis=Zeitfeld("bis","Uhrzeit")
+
 
 #Auswertebutton
 
