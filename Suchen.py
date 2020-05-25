@@ -13,13 +13,18 @@ from tkintertable import TableCanvas, TableModel
 import locale
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8') #DEUTSCHES FORMAT
 from datetime import datetime,timezone
+import pickle
+import sys
 
 ### Variablen
 
 global Suchergebnis_Liste
 global Dateimanager
-Dateimanager="nemo"
 global standardpfad
+
+
+
+Dateimanager="nemo"
 standardpfad="/home/"
 
 ## Hauptfenster
@@ -636,6 +641,66 @@ Anzahl_Ergebnisse.place(x=360, y=y_Zeit_bis+105)
 
 Suchergebnisse_anzeigen_Button=tk.Button(Hauptfenster,state=tk.DISABLED, text='5. Ergebnisse \n anzeigen',font="Arial 10 bold", command=Suchergebnisse_anzeigen)#Suchergebnisse_anzeigen)
 Suchergebnisse_anzeigen_Button.place(x=10, y=y_Zeit_bis+90, width=125, height=60)
+
+#Einstellungsmenü
+
+def Einstellungen_Speichern(Pfadvorgabe,Dateimanagervorgabe):
+    
+    aktueller_pfad=os.path.dirname(os.path.abspath(sys.argv[0]))
+    
+    Einstellungen=(Pfadvorgabe.get(),Dateimanagervorgabe.get())
+    
+    fb=open(aktueller_pfad+"/"+"Einstellungen.pkl","wb")
+    pickle.dump(Einstellungen,fb)
+    fb.close()
+
+
+def Einstellungen_öffnen():
+    
+    Einstellungsfenster=tk.Tk()
+    Einstellungsfenster.title("Einstellungen und Vorgaben")
+    tk.Label(Einstellungsfenster,text="Einstellungen",font="Arial 11 bold underline").grid(row=0,column=1)
+    
+    tk.Label(Einstellungsfenster,text="Suchpfad",font="Arial 10").grid(row=1,column=0,sticky=tk.W)
+    Pfadvorgabe=tk.Entry(Einstellungsfenster,width=40)
+    Pfadvorgabe.grid(row=1,column=1)
+
+    tk.Label(Einstellungsfenster,text="Dateimanager - Befehl",font="Arial 10").grid(row=2,column=0)
+    Dateimanagervorgabe=tk.Entry(Einstellungsfenster,width=40)
+    Dateimanagervorgabe.grid(row=2,column=1)
+
+    tk.Button(Einstellungsfenster,text="Speichern",command=lambda:Einstellungen_Speichern(Pfadvorgabe,Dateimanagervorgabe)).grid(row=3,column=1)
+
+    #Einstellungen laden
+    try:
+        aktueller_pfad=os.path.dirname(os.path.abspath(sys.argv[0]))
+        
+        fb=open(aktueller_pfad+"/"+"Einstellungen.pkl","rb")
+        Einstellungen=pickle.load(fb)
+        fb.close()
+
+        Pfadvorgabe.insert(0,Einstellungen[0])
+        Dateimanagervorgabe.insert(0,Einstellungen[1])
+
+    except:
+        tkm.showerror("FEHLER","Laden von Einstellungen nicht möglich")
+        os.abort()
+
+
+
+
+    Einstellungsfenster.mainloop()
+
+
+
+
+
+menu = tk.Menu(Hauptfenster)
+Hauptfenster.config(menu=menu)
+
+filemenu = tk.Menu(menu)
+menu.add_cascade(label="Einstellungen", menu=filemenu)
+filemenu.add_command(label="Vorgaben", command=Einstellungen_öffnen)
 
 ############################################
 
