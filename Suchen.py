@@ -1,11 +1,28 @@
 #!/usr/bin/env python3
 
 import tkinter as tk 
+#from tkinter import *
 import os
 import tkinter.messagebox as tkm
 from tkinter.filedialog import askopenfilename, askdirectory    
 from datetime import datetime
+import subprocess
+from tkinter import ttk
+import pandas as pd
+from tkintertable import TableCanvas, TableModel
+import locale
+locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8') #DEUTSCHES FORMAT
+from datetime import datetime,timezone
 
+### Variablen
+
+global Suchergebnis_Liste
+global Dateimanager
+Dateimanager="nemo"
+global standardpfad
+standardpfad="/home/"
+
+## Hauptfenster
 
 Hauptfenster=tk.Tk()
 
@@ -19,7 +36,9 @@ Hauptfenster.resizable(0,0)
 
 
 backFrame = tk.Frame(master=Hauptfenster,width=400,height=400,bg='cornsilk3')
-backFrame.place(x=0, y=0, width=600, height=350)
+backFrame.place(x=0, y=0, width=600, height=400)
+
+
 
 
 ## Funktionen
@@ -144,10 +163,39 @@ class Zeitfeld:
     
         return datum
 
+class Button_Ordner_öffnen:
 
+    def __init__(self,nummer):
+        self.nummer=nummer
+
+
+
+def Ordner_öffnen(Suchergebnisnummer):
+    global Suchergebnis_Liste
+    global Dateimanager
+    ordnerpfad=Suchergebnis_Liste.loc[Suchergebnisnummer,"Ordnerpfad"]
+    subprocess.call([Dateimanager,ordnerpfad])
+    return 
+
+def kompletten_Pfad_erstellen(punktpfad,suchpfad):
+    punktpfad=punktpfad[2:]
+    kompletter_Pfad=suchpfad+punktpfad
+    return kompletter_Pfad
+
+def Dateiname_extrahieren(kompletter_Pfad):
+    if os.path.isfile(kompletter_Pfad):
+        Ordnerpfad,Dateiname=os.path.split(kompletter_Pfad)
+    else:
+        Ordnerpfad=kompletter_Pfad
+        Dateiname="keine Datei"
+    return (Ordnerpfad,Dateiname)
 
 def Suchen():
-    
+    #Ausgabefeld leeren+ Wartezeit starten
+    Ausgabefeld.delete("1.0",tk.END)
+    Wartefeld.start()
+    Wartetext.place(x=210, y=290, width=300, height=16)
+
     #Zeiten abfragen
 
     datum_von=Datum_von.Datum_pruefen()
@@ -181,16 +229,251 @@ def Suchen():
         zeit_bis=zeit_bis.replace(minute=uhrzeit_bis.minute)
         tkm.showinfo("Zeit bis","Zeit bis auf aktuelles Datum gesetzt")
     
+    
+
+    #Dateityp prüfen
+
+    Dateityp=Dateitypeingabe.get()
+
+    #Suchbegriff prüfen
+
+    Suchbegriff=Begriffeingabe.get()
+
+    if Suchbegriff=="":
+        tkm.showwarning("Fehlender Suchbegriff","Bitte Suchbegriff eingeben")
+        Begriffeingabe.config(bg="red")
+        return
+    
+    if Sterneeingabe_Check.get()==True:
+        Suchbegriff="*"+str(Suchbegriff)+"*"
+
+    Begriffeingabe.config(bg="white")
+
+    #Dateien und Ordner Check
+
+    if Ordner_check.get()==True:
+        Filetype="-type"+" "+"d"
+    elif Dateien_check.get()==True:
+        Filetype="-type"+" "+"f"
+    
+    elif Dateien_check.get()==False and Ordner_check.get()==False:
+        Ordner_Checkbox.select()
+        Ordner_Dateien.select()
+        Filetype=""
+        tkm.showinfo("Suchart","Es werden Dateien und Ordner gesucht")
+
+    if Dateien_check.get()==True and Ordner_check.get()==True:
+        Filetype=""
+
+
+    #SUCHEN
+    os.chdir(pfad.get()) #Zum Suchverzeichnis wechseln
+    
+    if zeit_bis=="leer" and zeit_von=="leer":
+        Suchergebnis=subprocess.run(["find","-iname",Suchbegriff],stdout=subprocess.PIPE)
+
+    else:
+        aktuelles_Datum=datetime.now().date()
+        if zeit_bis!="leer" and zeit_von!="leer":
+            zeitparameter1="+"+str((aktuelles_Datum-zeit_bis.date()).days-1)
+            zeitparameter2="-"+str((aktuelles_Datum-zeit_von.date()).days+1)
+            Suchergebnis=subprocess.run(["find","-iname",Suchbegriff,"-mtime",zeitparameter1,"-mtime",zeitparameter2],stdout=subprocess.PIPE)
+
+        elif zeit_bis!="leer" and zeit_von=="leer":
+            zeitparameter1="+"+str((aktuelles_Datum-zeit_bis.date()).days-1)
+            Suchergebnis=subprocess.run(["find","-iname",Suchbegriff,"-mtime",zeitparameter1],stdout=subprocess.PIPE)
+
+
+        elif zeit_bis=="leer" and zeit_von!="leer":
+            zeitparameter2="-"+str((aktuelles_Datum-zeit_von.date()).days+1)
+            Suchergebnis=subprocess.run(["find","-iname",Suchbegriff,"-mtime",zeitparameter2],stdout=subprocess.PIPE)
+    
+    Ausgabefeld.insert("1.0",str(Suchergebnis.stdout.decode()))
+
+    #Suchergebnis zerlegen
+    Suchergebnis=Suchergebnis.stdout.decode().split(sep="\n")
+    del Suchergebnis[-1]
+    global Suchergebnis_Liste
+    Suchergebnis_Liste=pd.DataFrame()
+    Suchergebnis_Liste["kompletter Pfad"]=Suchergebnis
+    Suchergebnis_Liste["kompletter Pfad"]=Suchergebnis_Liste["kompletter Pfad"].apply(lambda x:kompletten_Pfad_erstellen(x,pfad.get()))#####################################################
+    Suchergebnis_Liste["Dateiname"]=Suchergebnis_Liste["kompletter Pfad"].apply(lambda x:Dateiname_extrahieren(x)[1])
+    Suchergebnis_Liste["Ordnerpfad"]=Suchergebnis_Liste["kompletter Pfad"].apply(lambda x:Dateiname_extrahieren(x)[0])
+    Suchergebnis_Liste["Änderungsdatum"]=Suchergebnis_Liste["kompletter Pfad"].apply(lambda x:os.path.getmtime(x))
+    Suchergebnis_Liste["Änderungsdatum"]=Suchergebnis_Liste["Änderungsdatum"].apply(lambda x:datetime.fromtimestamp(x))
+
+    #Suchergebnis nach Uhrzeiten filtern
+    if zeit_bis!="leer" and zeit_von!="leer":
+        Suchergebnis_Liste=Suchergebnis_Liste.where((Suchergebnis_Liste["Änderungsdatum"]>zeit_von) & (Suchergebnis_Liste["Änderungsdatum"]<zeit_bis)).dropna()
+    elif zeit_bis!="leer" and zeit_von=="leer":
+        Suchergebnis_Liste=Suchergebnis_Liste.where(Suchergebnis_Liste["Änderungsdatum"]<zeit_bis).dropna()
+    
+    elif zeit_bis=="leer" and zeit_von!="leer":
+        Suchergebnis_Liste=Suchergebnis_Liste.where(Suchergebnis_Liste["Änderungsdatum"]>zeit_von).dropna()
+
+    #Liste für Ausgabe aufbereiten Ordnerpfad, Dateiname, Änderungsdatum
+    Suchergebnis_Liste=Suchergebnis_Liste.loc[:,("Ordnerpfad","Dateiname","Änderungsdatum")]
+
+    #Daten ausgeben
+
+    print("Zeit bis: ",zeit_bis)
+    print("Zeit von: ",zeit_von)
+    print("Dateityp: "+ Dateityp)
+    print("Suchbegriff: "+ Suchbegriff)
+    print("Sterneeingabe: "+str(Sterneeingabe_Check.get()))
+    print("Filetype: "+Filetype)
+    print(".............")
+    print(Suchergebnis_Liste)
+    print("Anzahl Suchergebnisse: "+str(len(Suchergebnis_Liste)))
+    
+    print("---------------------------")
+
+    
+
+    if len(Suchergebnis_Liste)>1000:
+        tkm.showinfo("Hinweis","Es gibt mehr als 1000 Suchergebnisse")
+        Suchergebnis_Liste=Suchergebnis_Liste.iloc[0:1000,:]
+        Anzahl_Ergebnisse.config(text="mehr als 1000")
+    else:
+        Anzahl_Ergebnisse.config(text=str(len(Suchergebnis_Liste)))
+    
+
+    Wartefeld.stop()
+    Wartetext.place_forget()
+
+    if Suchergebnis_Liste.empty==False:
+        Suchergebnisse_anzeigen_Button.config(state=tk.NORMAL)
+    else:
+        tkm.showinfo("kein Suchergebnis","keine Ordner und Dateien gefunden")
+    
+    
+def Pfad_zerlegen(pfad,max_Zeichen):
+    pfadteile=pfad.split(sep="/")
+    del pfadteile[0]
+    pfadteile=list(reversed(pfadteile))
+    Ausgabepfad_temp=""
+    Ausgabepfad=""
+    while pfadteile!=[]:
+        
+        if len(Ausgabepfad_temp+pfadteile[-1])<max_Zeichen:
+            pfadteil=pfadteile.pop()
+            Ausgabepfad_temp=Ausgabepfad_temp+"/"+pfadteil
+        else:
+            Ausgabepfad=Ausgabepfad+Ausgabepfad_temp+"\n"
+            Ausgabepfad_temp=""
+
+    Ausgabepfad=Ausgabepfad+Ausgabepfad_temp
+    return Ausgabepfad
 
 
 
-    #print(datum_von)
-    #print(datum_bis)
-    #print(uhrzeit_von)
-    #print(uhrzeit_bis)
 
-    print(zeit_bis)
-    print(zeit_von)
+def Suchergebnisse_anzeigen():
+    global Suchergebnis_Liste
+    if Suchergebnis_Liste.empty==True:
+        tkm.showinfo("Hinweis","Keine Suchergebnisse verfügbar")
+        return
+
+    ## Ergebnisfenster
+
+    Ergebnisfenster=tk.Tk()
+    Ergebnisfenster.title("Suchergebnisse") #Titel festlegen
+    Ergebnisfenster.config(bg="cornsilk2")
+    Ergebnisfenster.wm_geometry("1000x600")
+    Ergebnisfenster.resizable(0,0)
+    
+    
+    Suchergebnis_Tabelle_Inhalt=dict.fromkeys(list(Suchergebnis_Liste.index.values))
+    Suchergebnis_Tabelle_Spalten=Suchergebnis_Liste.columns.values
+    
+    for key in Suchergebnis_Tabelle_Inhalt.keys():
+        zeile=dict()
+        for column in Suchergebnis_Tabelle_Spalten:
+            zeile[column]=Suchergebnis_Liste.loc[key,column]
+        Suchergebnis_Tabelle_Inhalt[key]=zeile
+
+    class AutoScrollbar(tk.Scrollbar):
+    # A scrollbar that hides itself if it's not needed.
+    # Only works if you use the grid geometry manager!
+        def set(self, lo, hi):
+            if float(lo) <= 0.0 and float(hi) >= 1.0:
+                # grid_remove is currently missing from Tkinter!
+                self.tk.call("grid", "remove", self)
+            else:
+                self.grid()
+            tk.Scrollbar.set(self, lo, hi)
+        def pack(self, **kw):
+            raise tk.TclError("cannot use pack with this widget")
+        def place(self, **kw):
+            raise tk.TclError("cannot use place with this widget")
+
+    vscrollbar = AutoScrollbar(Ergebnisfenster)
+    vscrollbar.grid(row=0, column=1, sticky=tk.N+tk.S)
+    hscrollbar = AutoScrollbar(Ergebnisfenster, orient=tk.HORIZONTAL)
+    hscrollbar.grid(row=1, column=0, sticky=tk.E+tk.W)
+
+    canvas = tk.Canvas(Ergebnisfenster, yscrollcommand=vscrollbar.set, xscrollcommand=hscrollbar.set)
+    canvas.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
+
+    vscrollbar.config(command=canvas.yview)
+    hscrollbar.config(command=canvas.xview)
+
+    # make the canvas expandable
+    Ergebnisfenster.grid_rowconfigure(0, weight=1)
+    Ergebnisfenster.grid_columnconfigure(0, weight=1)
+
+    # create canvas contents
+    frame = tk.Frame(canvas)
+    frame.rowconfigure(1, weight=1)
+    frame.columnconfigure(1, weight=1)
+
+    rows = len(Suchergebnis_Liste)
+    
+    tk.Label(frame,text="Ordnerpfad",font="Arial 11 bold").grid(row=0,column=0)
+    tk.Label(frame,text="Dateiname",font="Arial 11 bold").grid(row=0,column=1)
+    tk.Label(frame,text="Änderungsdatum",font="Arial 11 bold").grid(row=0,column=2)
+
+
+    for i in range(rows):
+        Button_Öffnen=tk.Button(frame,text="Ordner öffnen")#,command=lambda: Ordner_öffnen(Button.nummer))
+        Button_Öffnen.grid(row=i+1,column=3)
+
+
+        
+        Feld_ordnerpfad = tk.Text(frame,width=50,state=tk.NORMAL,height=3)
+        Feld_ordnerpfad.insert("0.0",Pfad_zerlegen(str(Suchergebnis_Liste.iloc[i,0]),49))
+              
+        Feld_ordnerpfad.grid(row=i+1, column=0, sticky='news',ipady=0,pady=0)
+        Feld_ordnerpfad.config(state=tk.DISABLED)#,disabledbackground='white',disabledforeground="black")
+
+        Feld_Dateiname=tk.Entry(frame,width=30,state=tk.NORMAL)
+        Feld_Dateiname.insert(0,str(Suchergebnis_Liste.iloc[i,1]))
+        Feld_Dateiname.grid(row=i+1, column=1, sticky='news')
+        Feld_Dateiname.config(state=tk.DISABLED,disabledbackground='white',disabledforeground="black")
+
+        Feld_Änderungsdatum=tk.Entry(frame,width=20,state=tk.NORMAL)
+        Feld_Änderungsdatum.grid(row=i+1, column=2, sticky='news')
+        Feld_Änderungsdatum.insert(0,datetime.strftime(Suchergebnis_Liste.iloc[i,2],"%d.%m.%Y %H:%M:%S"))
+        Feld_Änderungsdatum.config(state=tk.DISABLED,disabledbackground='white',disabledforeground="black")
+    
+
+    
+
+    canvas.create_window(0, 0, anchor=tk.NW, window=frame)
+    frame.update_idletasks()
+    canvas.config(scrollregion=canvas.bbox("all"))
+
+    
+    
+
+
+
+
+    
+
+    
+    
+
 
 ### Objekte ###
 
@@ -203,8 +486,7 @@ y_Pfadeingabe=30
 tk.Label(Hauptfenster, text="1. Pfad \n auswählen",fg="black",font="Arial 11",bg="cornsilk2",justify="center").place(x=10, y=y_Pfadeingabe, width=120, height=30)
 
 pfad=tk.StringVar()
-#global standardpfad
-standardpfad="/home/"
+
 pfad.set(standardpfad) # Standardpfad
 Pfadeingabe=tk.Entry(Hauptfenster,textvariable=pfad)
 Pfadeingabe.place(x=210, y=y_Pfadeingabe, width=350, height=30)
@@ -235,7 +517,9 @@ Dateitypeingabe.place(x=210, y=y_Eingabebegriff-50, width=55, height=30)
 tk.Label(Hauptfenster, text="Dateityp",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=210, y=y_Eingabebegriff-50+25, width=55, height=16)
 
 #Checkbox Sterne
-Sterneeingabe=tk.Checkbutton(Hauptfenster, width=30, height=30)
+Sterneeingabe_Check=tk.BooleanVar()
+
+Sterneeingabe=tk.Checkbutton(Hauptfenster, width=30, height=30,var=Sterneeingabe_Check)
 Sterneeingabe.place(x=300, y=y_Eingabebegriff-65, width=20, height=20)
 tk.Label(Hauptfenster, text="Begriff an jeder Stelle des Dateinamens",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=320, y=y_Eingabebegriff-65, width=250, height=20)
 
@@ -243,14 +527,16 @@ Sterneeingabe.select() #Checkbutton anwählen
 
 
 #Checkbox Ordner
-Ordner_Checkbox=tk.Checkbutton(Hauptfenster, width=30, height=30)
+Ordner_check=tk.BooleanVar()
+Ordner_Checkbox=tk.Checkbutton(Hauptfenster, width=30, height=30,var=Ordner_check)
 Ordner_Checkbox.place(x=300, y=y_Eingabebegriff-45, width=20, height=20)
 tk.Label(Hauptfenster, text="Ordner suchen",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=320, y=y_Eingabebegriff-45, width=250, height=20)
 
 Ordner_Checkbox.select() #Checkbutton anwählen
 
 #Checkbox Dateien
-Ordner_Dateien=tk.Checkbutton(Hauptfenster, width=30, height=30)
+Dateien_check=tk.BooleanVar()
+Ordner_Dateien=tk.Checkbutton(Hauptfenster, width=30, height=30,var=Dateien_check)
 Ordner_Dateien.place(x=300, y=y_Eingabebegriff-25, width=20, height=20)
 tk.Label(Hauptfenster, text="Dateien suchen",fg="black",font="Arial 10",bg="cornsilk2",justify="left",anchor="w").place(x=320, y=y_Eingabebegriff-25, width=250, height=20)
 
@@ -319,16 +605,32 @@ Uhrzeit_bis=Zeitfeld("bis","Uhrzeit")
 Suchbutton=tk.Button(Hauptfenster, text='4. SUCHEN',font="Arial 10 bold", command=Suchen)
 Suchbutton.place(x=10, y=y_Zeit_bis+30, width=125, height=60)
 
+#Progressbar
+Wartefeld=ttk.Progressbar(Hauptfenster, orient="horizontal", length=200, mode="determinate")
+Wartefeld.place(x=210,y=310,width=300,height=20)
+
+Wartetext=tk.Label(Hauptfenster, text="Suchvorgang läuft - Bitte warten ...",fg="black",font="Arial 10",bg="yellow",justify="center")
+
 
 #Ausgabefeld
 Ausgabefeld=tk.Text(Hauptfenster)
-Ausgabefeld.place(x=0, y=y_Zeit_bis+100, width=580, height=250)
+Ausgabefeld.place(x=0, y=y_Zeit_bis+150, width=580, height=200)
 
 Scrollbar_Ausgabe=tk.Scrollbar(Hauptfenster)
-Scrollbar_Ausgabe.place(x=580, y=y_Zeit_bis+100, width=20, height=250)
+Scrollbar_Ausgabe.place(x=580, y=y_Zeit_bis+150, width=20, height=200)
 
 Scrollbar_Ausgabe.config(command=Ausgabefeld.yview)
 Ausgabefeld.config(yscrollcommand=Scrollbar_Ausgabe.set)
+
+#Anzahl Suchergebnisse
+tk.Label(Hauptfenster,fg="black",font="Arial 10",justify="center",text="Anzahl \n Versuchsergebnisse: ",bg="cornsilk2").place(x=210,y=y_Zeit_bis+100)
+Anzahl_Ergebnisse=tk.Label(Hauptfenster,fg="black",font="Arial 13",bg="grey73",justify="center",text="0")
+Anzahl_Ergebnisse.place(x=360, y=y_Zeit_bis+105)
+
+#Ergebnisse anzeigen
+
+Suchergebnisse_anzeigen_Button=tk.Button(Hauptfenster,state=tk.DISABLED, text='5. Ergebnisse \n anzeigen',font="Arial 10 bold", command=Suchergebnisse_anzeigen)#Suchergebnisse_anzeigen)
+Suchergebnisse_anzeigen_Button.place(x=10, y=y_Zeit_bis+90, width=125, height=60)
 
 ############################################
 
