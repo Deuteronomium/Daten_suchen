@@ -165,17 +165,21 @@ class Zeitfeld:
 
 class Button_Ordner_öffnen:
 
+    global frame
+
     def __init__(self,nummer):
         self.nummer=nummer
+        Button_Öffnen=tk.Button(frame,text="Ordner öffnen",command=lambda: self.Ordner_öffnen(self.nummer))
+        Button_Öffnen.grid(row=self.nummer+1,column=3)
 
 
 
-def Ordner_öffnen(Suchergebnisnummer):
-    global Suchergebnis_Liste
-    global Dateimanager
-    ordnerpfad=Suchergebnis_Liste.loc[Suchergebnisnummer,"Ordnerpfad"]
-    subprocess.call([Dateimanager,ordnerpfad])
-    return 
+    def Ordner_öffnen(self,Suchergebnisnummer):
+        global Suchergebnis_Liste
+        global Dateimanager
+        ordnerpfad=Suchergebnis_Liste.loc[Suchergebnisnummer,"Ordnerpfad"]
+        subprocess.call([Dateimanager,ordnerpfad])
+        return 
 
 def kompletten_Pfad_erstellen(punktpfad,suchpfad):
     punktpfad=punktpfad[2:]
@@ -423,6 +427,7 @@ def Suchergebnisse_anzeigen():
     Ergebnisfenster.grid_columnconfigure(0, weight=1)
 
     # create canvas contents
+    global frame
     frame = tk.Frame(canvas)
     frame.rowconfigure(1, weight=1)
     frame.columnconfigure(1, weight=1)
@@ -435,8 +440,8 @@ def Suchergebnisse_anzeigen():
 
 
     for i in range(rows):
-        Button_Öffnen=tk.Button(frame,text="Ordner öffnen")#,command=lambda: Ordner_öffnen(Button.nummer))
-        Button_Öffnen.grid(row=i+1,column=3)
+        Button_Ordner_öffnen(i)
+        
 
 
         
