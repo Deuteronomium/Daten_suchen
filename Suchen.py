@@ -21,11 +21,36 @@ import sys
 global Suchergebnis_Liste
 global Dateimanager
 global standardpfad
+global Einstellungsfenster
 
 
 
-Dateimanager="nemo"
-standardpfad="/home/"
+#Einstellungen laden
+
+def Einstellungen_laden():
+    global Dateimanager
+    global standardpfad
+
+    try:
+        aktueller_pfad=os.path.dirname(os.path.abspath(sys.argv[0]))
+        
+        fb=open(aktueller_pfad+"/"+"Einstellungen.pkl","rb")
+        Einstellungen=pickle.load(fb)
+        fb.close()
+
+        Pfadvorgabe=Einstellungen[0]
+        Dateimanagervorgabe=Einstellungen[1]
+        
+        Dateimanager=Dateimanagervorgabe
+        standardpfad=Pfadvorgabe
+
+    except:
+        tkm.showerror("FEHLER","Laden von Einstellungen nicht möglich")
+        os.abort()
+
+    return Einstellungen
+
+Einstellungen_laden()
 
 ## Hauptfenster
 
@@ -49,9 +74,19 @@ backFrame.place(x=0, y=0, width=600, height=400)
 ## Funktionen
 
 def Pfad_auslesen(pfad1):
-    #global standardpfad
-    Pfad=askdirectory(initialdir=pfad1)
+    global standardpfad
+    global Hauptfenster
+
+    Pfad=askdirectory(initialdir=pfad1,parent=Hauptfenster)
+
+    if Pfad=="":
+        Pfad=standardpfad
+    else:
+        Pfad=Pfad+"/"
+    
     pfad.set(Pfad)
+    standardpfad=Pfad
+    
 
 
 class Zeitfeld:
@@ -655,13 +690,49 @@ def Einstellungen_Speichern(Pfadvorgabe,Dateimanagervorgabe):
     fb.close()
 
 
+def Pfad_auslesen_Einstellungen(pfad1):
+    global standardpfad
+    global Pfadvorgabe
+    global Dateimanagervorgabe
+    global pfad
+    global Einstellungsfenster
+
+    
+
+    Pfad=askdirectory(initialdir=pfad1,parent=Einstellungsfenster) # immer im  Vordergrund!!!
+    
+    if Pfad=="":
+        Pfad=standardpfad
+    else:
+        Pfad=Pfad+"/"
+    
+    Pfadvorgabe.delete(0,tk.END)
+    Pfadvorgabe.insert(0,Pfad)
+    standardpfad=Pfad
+    pfad.set(standardpfad)
+    
+    Einstellungen_Speichern(Pfadvorgabe,Dateimanagervorgabe)
+
+    #Einstellungsfenster.wm_attributes('-topmost', 1)
+
+   #Einstellungsfenster.lift() #Fenster in den Vordergrund
+    
+    
+
+
+
 def Einstellungen_öffnen():
     
+    global Pfadvorgabe
+    global Dateimanagervorgabe
+    global Einstellungsfenster
+
     Einstellungsfenster=tk.Tk()
+    
     Einstellungsfenster.title("Einstellungen und Vorgaben")
     tk.Label(Einstellungsfenster,text="Einstellungen",font="Arial 11 bold underline").grid(row=0,column=1)
     
-    tk.Label(Einstellungsfenster,text="Suchpfad",font="Arial 10").grid(row=1,column=0,sticky=tk.W)
+    tk.Label(Einstellungsfenster,text="Standard-Suchpfad",font="Arial 10").grid(row=1,column=0,sticky=tk.W)
     Pfadvorgabe=tk.Entry(Einstellungsfenster,width=40)
     Pfadvorgabe.grid(row=1,column=1)
 
@@ -671,25 +742,25 @@ def Einstellungen_öffnen():
 
     tk.Button(Einstellungsfenster,text="Speichern",command=lambda:Einstellungen_Speichern(Pfadvorgabe,Dateimanagervorgabe)).grid(row=3,column=1)
 
-    #Einstellungen laden
-    try:
-        aktueller_pfad=os.path.dirname(os.path.abspath(sys.argv[0]))
-        
-        fb=open(aktueller_pfad+"/"+"Einstellungen.pkl","rb")
-        Einstellungen=pickle.load(fb)
-        fb.close()
+    
 
-        Pfadvorgabe.insert(0,Einstellungen[0])
-        Dateimanagervorgabe.insert(0,Einstellungen[1])
+    Einstellungen=Einstellungen_laden()
 
-    except:
-        tkm.showerror("FEHLER","Laden von Einstellungen nicht möglich")
-        os.abort()
+    Pfadvorgabe.insert(0,Einstellungen[0])
+    Dateimanagervorgabe.insert(0,Einstellungen[1])
 
+    Button_Pfad_öffnen=tk.Button(Einstellungsfenster,text="Öffnen",command=lambda:Pfad_auslesen_Einstellungen(standardpfad))
+    Button_Pfad_öffnen.grid(row=1,column=3)
 
-
+    
+    
 
     Einstellungsfenster.mainloop()
+
+    
+
+   
+    
 
 
 
@@ -703,6 +774,13 @@ menu.add_cascade(label="Einstellungen", menu=filemenu)
 filemenu.add_command(label="Vorgaben", command=Einstellungen_öffnen)
 
 ############################################
+
+#if 'normal' != Einstellungsfenster.state():
+ #       print ('running')
+  #      #Hauptfenster.deiconify()
+   #     print(Einstellungsfenster.state())
+
+
 
 Hauptfenster.mainloop() #Starten des gebauten Formulars
 
