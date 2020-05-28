@@ -501,6 +501,8 @@ def Suchergebnisse_anzeigen():
     Ergebnisfenster.grid_rowconfigure(0, weight=1)
     Ergebnisfenster.grid_columnconfigure(0, weight=1)
 
+    
+
     # create canvas contents
     global frame
     frame = tk.Frame(canvas)
