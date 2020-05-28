@@ -275,13 +275,21 @@ def Suchen():
     
     
 
+   
+    
+    #Suchbegriff prüfen
+
+    Suchbegriff=Begriffeingabe.get()
+
     #Dateityp prüfen
 
     Dateityp=Dateitypeingabe.get()
 
-    #Suchbegriff prüfen
+    if Dateityp!="":
+        Suchbegriff=Suchbegriff+"."+Dateityp
 
-    Suchbegriff=Begriffeingabe.get()
+
+
 
     if Suchbegriff=="":
         tkm.showwarning("Fehlender Suchbegriff","Bitte Suchbegriff eingeben")
@@ -291,46 +299,73 @@ def Suchen():
     if Sterneeingabe_Check.get()==True:
         Suchbegriff="*"+str(Suchbegriff)+"*"
 
+    
+
     Begriffeingabe.config(bg="white")
 
     #Dateien und Ordner Check
+    
 
-    if Ordner_check.get()==True:
-        Filetype="-type"+" "+"d"
-    elif Dateien_check.get()==True:
-        Filetype="-type"+" "+"f"
+    if Ordner_check.get()==True and Dateien_check.get()==False:
+        Filetype=("-type","d")
+    elif Dateien_check.get()==True and Ordner_check.get()==False:
+        Filetype=("-type","f")
     
     elif Dateien_check.get()==False and Ordner_check.get()==False:
         Ordner_Checkbox.select()
         Ordner_Dateien.select()
-        Filetype=""
+        Filetype=()
         tkm.showinfo("Suchart","Es werden Dateien und Ordner gesucht")
 
     if Dateien_check.get()==True and Ordner_check.get()==True:
-        Filetype=""
+        Filetype=()
 
 
     #SUCHEN
-    os.chdir(pfad.get()) #Zum Suchverzeichnis wechseln
+
+    try:
+        os.chdir(pfad.get()) #Zum Suchverzeichnis wechseln
+        Pfadeingabe.config(bg="white")
+    except:
+        if pfad.get()=="":
+            tkm.showwarning("Warnung","Bitte Suchordner angeben")
+            Pfadeingabe.config(bg="red")
+            return
+        else:
+            tkm.showerror("Fehler","Es konnte nichts ins angegebene Verzeichnis gewechselt werden")
+            Pfadeingabe.config(bg="red")
+            return
+
+    
     
     if zeit_bis=="leer" and zeit_von=="leer":
-        Suchergebnis=subprocess.run(["find","-iname",Suchbegriff],stdout=subprocess.PIPE)
+        
+        Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}"""],stdout=subprocess.PIPE)
+        if Filetype!=():
+            Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}""",Filetype[0],Filetype[1]],stdout=subprocess.PIPE)
+
 
     else:
         aktuelles_Datum=datetime.now().date()
         if zeit_bis!="leer" and zeit_von!="leer":
             zeitparameter1="+"+str((aktuelles_Datum-zeit_bis.date()).days-1)
             zeitparameter2="-"+str((aktuelles_Datum-zeit_von.date()).days+1)
-            Suchergebnis=subprocess.run(["find","-iname",Suchbegriff,"-mtime",zeitparameter1,"-mtime",zeitparameter2],stdout=subprocess.PIPE)
+            Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}""","-mtime",zeitparameter1,"-mtime",zeitparameter2],stdout=subprocess.PIPE)
+            if Filetype!=():
+                Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}""","-mtime",zeitparameter1,"-mtime",zeitparameter2,Filetype[0],Filetype[1]],stdout=subprocess.PIPE)
 
         elif zeit_bis!="leer" and zeit_von=="leer":
             zeitparameter1="+"+str((aktuelles_Datum-zeit_bis.date()).days-1)
-            Suchergebnis=subprocess.run(["find","-iname",Suchbegriff,"-mtime",zeitparameter1],stdout=subprocess.PIPE)
+            Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}""","-mtime",zeitparameter1],stdout=subprocess.PIPE)
+            if Filetype!=():
+                Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}""","-mtime",zeitparameter1,Filetype[0],Filetype[1]],stdout=subprocess.PIPE)
 
 
         elif zeit_bis=="leer" and zeit_von!="leer":
             zeitparameter2="-"+str((aktuelles_Datum-zeit_von.date()).days+1)
-            Suchergebnis=subprocess.run(["find","-iname",Suchbegriff,"-mtime",zeitparameter2],stdout=subprocess.PIPE)
+            Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}""","-mtime",zeitparameter2],stdout=subprocess.PIPE)
+            if Filetype!=():
+                Suchergebnis=subprocess.run(["find","-iname",f"""{Suchbegriff}""","-mtime",zeitparameter2,Filetype[0],Filetype[1]],stdout=subprocess.PIPE)
     
     Ausgabefeld.insert("1.0",str(Suchergebnis.stdout.decode()))
 
@@ -365,7 +400,7 @@ def Suchen():
     print("Dateityp: "+ Dateityp)
     print("Suchbegriff: "+ Suchbegriff)
     print("Sterneeingabe: "+str(Sterneeingabe_Check.get()))
-    print("Filetype: "+Filetype)
+    
     print(".............")
     print(Suchergebnis_Liste)
     print("Anzahl Suchergebnisse: "+str(len(Suchergebnis_Liste)))
